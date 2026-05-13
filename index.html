@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문장 성장판 AI - 2학년 글쓰기 도우미</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary-color: #4a90e2; --admin-color: #9b59b6; --bg-color: #f8f9fa; --accent-color: #f1c40f; }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: var(--bg-color); padding: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* 상단 탭 스타일 */
+        .mode-tab { display: flex; margin-bottom: 20px; gap: 5px; }
+        .tab-btn { flex: 1; padding: 12px; cursor: pointer; border: none; background: #ddd; border-radius: 8px 8px 0 0; font-weight: bold; transition: 0.3s; }
+        .tab-btn.active { background: white; border-top: 4px solid var(--primary-color); color: var(--primary-color); }
+        
+        .section { display: none; padding: 20px; border: 1px solid #eee; border-radius: 0 0 10px 10px; }
+        .section.active { display: block; }
+        
+        /* 주제 박스 스타일 */
+        .topic-container { background: #fff9db; padding: 15px; border-radius: 12px; border: 2px dashed var(--accent-color); margin-bottom: 20px; text-align: center; }
+        
+        /* 페르소나 선택 스타일 */
+        .persona-selection { background: #f0f7ff; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-around; align-items: center; }
+        .persona-item { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; }
+
+        /* 입력 및 버튼 스타일 */
+        label { font-weight: bold; display: block; margin-bottom: 8px; }
+        textarea { width: 100%; height: 100px; padding: 15px; border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .btn-ai { background: var(--primary-color); width: 100%; margin-bottom: 15px; font-size: 18px; }
+        .btn-save { background: #2ecc71; }
+        .btn-export { background: #f39c12; }
+        .btn-import { background: var(--admin-color); }
+        
+        /* 피드백 상자 */
+        #feedbackBox { background: #eef5ff; border-left: 5px solid var(--primary-color); padding: 15px; margin: 15px 0; border-radius: 0 10px 10px 0; min-height: 60px; font-size: 17px; white-space: pre-line; }
+        
+        .chart-container { margin-top: 30px; height: 300px; }
+        .admin-card { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px dashed #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center; color: var(--primary-color);">🌱 문장 성장판 AI</h2>
+    
+    <div class="mode-tab">
+        <button class="tab-btn active" onclick="switchMode('student')">학생 학습 모드</button>
+        <button class="tab-btn" onclick="switchMode('teacher')">교사 관리 모드</button>
+    </div>
+
+    <div id="student-section" class="section active">
+        <div style="margin-bottom: 15px;">
+            <label>이름: <input type="text" id="studentName" placeholder="이름 입력" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc;"></label>
+        </div>
+
+        <div class="topic-container">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #967117;">💡 아래 주제에 대해 문장을 써보세요!</p>
+            <h3 id="currentTopic" style="margin: 0 0 15px 0; color: #d35400;">랜덤 주제 버튼을 눌러주세요!</h3>
+            <button class="btn" onclick="changeTopic()" style="background: var(--accent-color); color: #333; padding: 8px 15px; font-size: 14px;">다른 주제 뽑기 🎲</button>
+        </div>
+
+        <div class="persona-selection">
+            <span style="font-size: 14px; font-weight: bold;">선생님 선택:</span>
+            <label class="persona-item"><input type="radio" name="persona" value="imagination" checked> ✨ 상상</label>
+            <label class="persona-item"><input type="radio" name="persona" value="logic"> 🧐 논리</label>
+            <label class="persona-item"><input type="radio" name="persona" value="emotion"> ❤️ 감성</label>
+        </div>
+        
+        <label>1단계: 지금 생각나는 문장을 써보세요.</label>
+        <textarea id="inputText" placeholder="예: 오늘 급식에서 나온 스파게티가 정말 달콤하고 맛있었다."></textarea>
+        <button class="btn btn-ai" onclick="getAIFeedback()">AI 선생님께 피드백 받기</button>
+        
+        <div id="feedbackBox">문장을 쓰고 위 버튼을 누르면 AI 선생님의 질문이 나타납니다.</div>
+        
+        <label>2단계: 질문에 답하며 더 길고 멋진 문장을 완성하세요!</label>
+        <textarea id="outputText" placeholder="AI 선생님의 질문을 참고해서 다시 써보세요."></textarea>
+        
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-save" onclick="saveEntry()">오늘의 성장 기록 저장</button>
+            <button class="btn btn-export" onclick="exportStudentData()">파일로 내보내기 (.json)</button>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="studentChart"></canvas>
+        </div>
+    </div>
+
+    <div id="teacher-section" class="section">
+        <h3 style="color: var(--admin-color);">📊 학급 성장 대시보드</h3>
+        <div class="admin-card">
+            <p>학생들이 제출한 <b>.json</b> 파일들을 선택하세요.</p>
+            <input type="file" id="fileInput" multiple accept=".json" style="margin-bottom: 10px;">
+            <button class="btn btn-import" onclick="importClassData()">데이터 일괄 분석</button>
+        </div>
+        <div id="classStatus" style="font-weight: bold; margin-bottom: 10px;"></div>
+        <div class="chart-container">
+            <canvas id="teacherChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+// ----------------------------------------------------
+    // 보안 설정: 입장 코드 및 확인 함수
+    // ----------------------------------------------------
+    const ACCESS_CODE = "0201"; //
+
+    function checkAccess() {
+        // 아이들이 접속하면 가장 먼저 뜨는 창입니다.
+        const userCode = prompt("선생님이 알려주신 비밀번호 4자리를 입력하세요 🔑");
+        
+        if (userCode !== ACCESS_CODE) {
+            alert("비밀번호가 틀렸어요! 다시 입력해볼까요?");
+            location.reload(); // 틀리면 페이지를 새로고침해서 다시 물어봅니다.
+        }
+    }
+
+    // ----------------------------------------------------
+    // 1. 설정 및 데이터
+    // ----------------------------------------------------
+    const GEMINI_API_KEY = "AIzaSyCmc8TKqgHVG7WBYRMUD95gz5SgwMlr4Vs"; // 선생님의 API 키
+    const MODEL_NAME = "gemini-3-flash-preview"; 
+    let studentHistory = [];
+
+    const topics = [
+        "오늘 급식에서 가장 맛있었던 반찬은 무엇인가요?",
+        "오늘 아침 학교에 올 때 무엇을 보았나요?",
+        "쉬는 시간에 친구와 어떤 놀이를 했나요?",
+        "우리 반에서 내가 가장 좋아하는 장소는 어디인가요?",
+        "오늘 체육 시간에 무엇을 배웠나요?",
+        "어제 저녁에 가족과 함께 무엇을 했나요?",
+        "내가 가장 아끼는 보물 1호는 무엇인가요?",
+        "우리 집에서 내가 가장 좋아하는 곳은 어디인가요?",
+        "주말에 가족과 함께 가고 싶은 곳은 어디인가요?",
+        "오늘 아침 나의 기분은 어땠나요?",
+        "최근에 나를 가장 행복하게 했던 일은 무엇인가요?",
+        "친구에게 고마웠던 마음을 짧게 적어볼까요?",
+        "내가 세상에서 가장 좋아하는 음식은 무엇인가요?",
+        "내가 가장 좋아하는 동물과 그 이유는 무엇인가요?",
+        "내가 만약 초능력이 생긴다면 어떤 능력을 갖고 싶나요?",
+        "내가 만약 유튜브 주인공이 된다면 무엇을 보여줄까요?",
+        "내가 만약 하늘을 마음껏 날 수 있다면 어떨까요?",
+        "나에게 말을 거는 로봇 친구가 생긴다면 어떨까요?",
+        "자고 일어났더니 내가 좋아하는 동물이 되어 있다면?",
+        "내가 나중에 어른이 되면 꼭 해보고 싶은 일은?"
+    ];
+
+    // ----------------------------------------------------
+    // 2. 초기화 및 주제 변경 함수
+    // ----------------------------------------------------
+    function changeTopic() {
+        const randomIndex = Math.floor(Math.random() * topics.length);
+        const selectedTopic = topics[randomIndex];
+        document.getElementById("currentTopic").innerText = selectedTopic;
+        document.getElementById("inputText").placeholder = `'${selectedTopic}'에 대해 문장을 써보세요.`;
+    }
+
+    window.onload = function() {
+        checkAccess(); // 접속 권한 확인
+        changeTopic();
+    };
+
+    // ----------------------------------------------------
+    // 3. 학생 모드: AI 피드백 (페르소나 + 어휘 추천)
+    // ----------------------------------------------------
+    async function getAIFeedback() {
+        const text = document.getElementById("inputText").value.trim();
+        const feedbackBox = document.getElementById("feedbackBox");
+        const persona = document.querySelector('input[name="persona"]:checked').value;
+        
+        if(!text) return alert("문장을 먼저 입력해주세요.");
+        feedbackBox.innerText = "선생님이 문장을 읽고 계셔요...";
+
+        let systemPrompt = "";
+        if (persona === "imagination") {
+            systemPrompt = "너는 초등 '상상 선생님'이야. 비유(~처럼)를 써서 꾸밀 수 있게 다정하게 질문해줘. 예쁜 형용사 하나를 [추천 단어]로 제안해줘.";
+        } else if (persona === "logic") {
+            systemPrompt = "너는 초등 '논리 선생님'이야. 왜 그런 일이 생겼는지 '왜냐하면'을 써서 대답할 수 있게 질문해줘. 멋진 연결어 하나를 [추천 단어]로 제안해줘.";
+        } else {
+            systemPrompt = "너는 초등 '감성 선생님'이야. 마음이 어땠는지 공감하며 질문해줘. 기분을 나타내는 단어 하나를 [추천 단어]로 제안해줘.";
+        }
+
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `${systemPrompt} 학생 문장: "${text}". 25자 이내로 다정하게 말해줘.`
+                        }]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+            if (data.candidates && data.candidates[0].content) {
+                const aiMsg = data.candidates[0].content.parts[0].text;
+                feedbackBox.innerHTML = `<strong>💡 AI 선생님의 조언:</strong>\n${aiMsg}`;
+                document.getElementById("outputText").value = text; 
+            } else { throw new Error("API 응답 없음"); }
+        } catch (e) {
+            feedbackBox.innerHTML = `⚠️ 오프라인 모드: '언제, 어디서, 누구와' 그랬는지 더 써볼까요?`;
+        }
+    }
+
+    // ----------------------------------------------------
+    // 4. 저장, 내보내기 및 관리자 기능 (기존 동일)
+    // ----------------------------------------------------
+    function saveEntry() {
+        const text = document.getElementById("outputText").value.trim();
+        if(!text) return alert("저장할 문장이 없습니다.");
+        studentHistory.push({ date: new Date().toLocaleTimeString(), length: text.length, content: text });
+        alert("기록이 저장되었습니다!");
+        drawStudentChart();
+    }
+
+    function exportStudentData() {
+        const name = document.getElementById("studentName").value || "학생";
+        const dataStr = JSON.stringify({ name: name, history: studentHistory }, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `${name}_성장기록.json`; a.click();
+    }
+
+    function importClassData() {
+        const files = document.getElementById('fileInput').files;
+        if (files.length === 0) return alert("파일을 선택해주세요.");
+        let promises = Array.from(files).map(file => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(JSON.parse(e.target.result));
+                reader.readAsText(file);
+            });
+        });
+        Promise.all(promises).then(results => {
+            drawTeacherChart(results);
+            document.getElementById("classStatus").innerText = `현재 ${results.length}명의 데이터 분석 중`;
+        });
+    }
+
+    function switchMode(mode) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(mode + '-section').classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    let stChartObj, tcChartObj;
+    function drawStudentChart() {
+        const ctx = document.getElementById('studentChart').getContext('2d');
+        if(stChartObj) stChartObj.destroy();
+        stChartObj = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: studentHistory.map((_, i) => `${i+1}회`),
+                datasets: [{ label: '문장 길이', data: studentHistory.map(h => h.length), borderColor: '#4a90e2', fill: true, backgroundColor: 'rgba(74, 144, 226, 0.1)' }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    function drawTeacherChart(classData) {
+        const ctx = document.getElementById('teacherChart').getContext('2d');
+        if(tcChartObj) tcChartObj.destroy();
+        const datasets = classData.map(student => ({
+            label: student.name,
+            data: student.history.map(h => h.length),
+            borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
+            fill: false
+        }));
+        tcChartObj = new Chart(ctx, {
+            type: 'line',
+            data: { labels: classData[0].history.map((_, i) => `${i+1}회`), datasets: datasets },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+</script>
+</body>
+</html>
