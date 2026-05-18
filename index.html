@@ -103,25 +103,30 @@
 </div>
 
 <script>
-// ----------------------------------------------------
-    // 보안 설정: 입장 코드 및 확인 함수
     // ----------------------------------------------------
-    const ACCESS_CODE = "0201"; //
+    // 1. 보안 설정 및 진입 제한
+    // ----------------------------------------------------
+    const ACCESS_CODE = "0201"; // 선생님이 정한 학급 입장 비밀번호
 
     function checkAccess() {
-        // 아이들이 접속하면 가장 먼저 뜨는 창입니다.
-        const userCode = prompt("선생님이 알려주신 비밀번호 4자리를 입력하세요 🔑");
-        
-        if (userCode !== ACCESS_CODE) {
-            alert("비밀번호가 틀렸어요! 다시 입력해볼까요?");
-            location.reload(); // 틀리면 페이지를 새로고침해서 다시 물어봅니다.
+        let count = 0;
+        while (count < 3) {
+            const userCode = prompt("선생님이 알려주신 비밀번호 4자리를 입력하세요 🔑");
+            if (userCode === ACCESS_CODE) {
+                return true; 
+            }
+            alert("비밀번호가 틀렸어요! 다시 입력해 보세요.");
+            count++;
         }
+        // 3회 실패 시 화면을 잠그고 멈춤
+        document.body.innerHTML = "<h2 style='text-align:center; margin-top:100px; color:#e74c3c;'>🔒 비밀번호를 확인 후 새로고침(F5)을 해주세요.</h2>";
+        return false;
     }
 
     // ----------------------------------------------------
-    // 1. 설정 및 데이터
+    // 2. 설정 및 데이터 변수
     // ----------------------------------------------------
-    const GEMINI_API_KEY = "AIzaSyCmc8TKqgHVG7WBYRMUD95gz5SgwMlr4Vs"; // 선생님의 API 키
+    const GEMINI_API_KEY = "AIzaSyCmc8TKqgHVG7WBYRMUD95gz5SgwMlr4Vs"; 
     const MODEL_NAME = "gemini-3-flash-preview"; 
     let studentHistory = [];
 
@@ -149,7 +154,7 @@
     ];
 
     // ----------------------------------------------------
-    // 2. 초기화 및 주제 변경 함수
+    // 3. 페이지 로드 및 주제 제어
     // ----------------------------------------------------
     function changeTopic() {
         const randomIndex = Math.floor(Math.random() * topics.length);
@@ -159,12 +164,14 @@
     }
 
     window.onload = function() {
-        checkAccess(); // 접속 권한 확인
-        changeTopic();
+        // 비밀번호 인증을 통과했을 때만 주제를 불러옵니다.
+        if (checkAccess()) {
+            changeTopic(); 
+        }
     };
 
     // ----------------------------------------------------
-    // 3. 학생 모드: AI 피드백 (페르소나 + 어휘 추천)
+    // 4. 학생 모드: AI 피드백 호출
     // ----------------------------------------------------
     async function getAIFeedback() {
         const text = document.getElementById("inputText").value.trim();
@@ -209,7 +216,7 @@
     }
 
     // ----------------------------------------------------
-    // 4. 저장, 내보내기 및 관리자 기능 (기존 동일)
+    // 5. 기록 데이터 관리 및 차트 기능
     // ----------------------------------------------------
     function saveEntry() {
         const text = document.getElementById("outputText").value.trim();
@@ -248,7 +255,9 @@
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(mode + '-section').classList.add('active');
-        event.currentTarget.classList.add('active');
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        }
     }
 
     let stChartObj, tcChartObj;
