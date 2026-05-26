@@ -9,23 +9,14 @@
         :root { --primary-color: #4a90e2; --admin-color: #9b59b6; --bg-color: #f8f9fa; --accent-color: #f1c40f; }
         body { font-family: 'Malgun Gothic', sans-serif; background-color: var(--bg-color); padding: 20px; line-height: 1.6; }
         .container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        /* 상단 탭 스타일 */
         .mode-tab { display: flex; margin-bottom: 20px; gap: 5px; }
         .tab-btn { flex: 1; padding: 12px; cursor: pointer; border: none; background: #ddd; border-radius: 8px 8px 0 0; font-weight: bold; transition: 0.3s; }
         .tab-btn.active { background: white; border-top: 4px solid var(--primary-color); color: var(--primary-color); }
-        
         .section { display: none; padding: 20px; border: 1px solid #eee; border-radius: 0 0 10px 10px; }
         .section.active { display: block; }
-        
-        /* 주제 박스 스타일 */
         .topic-container { background: #fff9db; padding: 15px; border-radius: 12px; border: 2px dashed var(--accent-color); margin-bottom: 20px; text-align: center; }
-        
-        /* 페르소나 선택 스타일 */
         .persona-selection { background: #f0f7ff; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-around; align-items: center; }
         .persona-item { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; }
-
-        /* 입력 및 버튼 스타일 */
         label { font-weight: bold; display: block; margin-bottom: 8px; }
         textarea { width: 100%; height: 100px; padding: 15px; border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
         .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
@@ -33,10 +24,7 @@
         .btn-save { background: #2ecc71; }
         .btn-export { background: #f39c12; }
         .btn-import { background: var(--admin-color); }
-        
-        /* 피드백 상자 */
         #feedbackBox { background: #eef5ff; border-left: 5px solid var(--primary-color); padding: 15px; margin: 15px 0; border-radius: 0 10px 10px 0; min-height: 60px; font-size: 17px; white-space: pre-line; }
-        
         .chart-container { margin-top: 30px; height: 300px; }
         .admin-card { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px dashed #ccc; }
     </style>
@@ -103,59 +91,38 @@
 </div>
 
 <script>
-    // ----------------------------------------------------
-    // 1. 보안 설정 및 진입 제한
-    // ----------------------------------------------------
-    const ACCESS_CODE = "0201"; // 선생님이 정한 학급 입장 비밀번호
-
+    // 1. 진입 보안 설정
+    const ACCESS_CODE = "0201";
     function checkAccess() {
         let count = 0;
         while (count < 3) {
             const userCode = prompt("선생님이 알려주신 비밀번호 4자리를 입력하세요 🔑");
-            if (userCode === ACCESS_CODE) {
-                return true; 
-            }
+            if (userCode === ACCESS_CODE) return true; 
             alert("비밀번호가 틀렸어요! 다시 입력해 보세요.");
             count++;
         }
-        // 3회 실패 시 화면을 잠그고 멈춤
         document.body.innerHTML = "<h2 style='text-align:center; margin-top:100px; color:#e74c3c;'>🔒 비밀번호를 확인 후 새로고침(F5)을 해주세요.</h2>";
         return false;
     }
 
-    // ----------------------------------------------------
-    // 2. 설정 및 데이터 변수
-    // ----------------------------------------------------
+    // 2. 환경 변수 설정 (최신 규격)
     const GEMINI_API_KEY = "AIzaSyCmc8TKqgHVG7WBYRMUD95gz5SgwMlr4Vs"; 
     const MODEL_NAME = "gemini-2.5-flash"; 
     let studentHistory = [];
 
     const topics = [
-        "오늘 급식에서 가장 맛있었던 반찬은 무엇인가요?",
-        "오늘 아침 학교에 올 때 무엇을 보았나요?",
-        "쉬는 시간에 친구와 어떤 놀이를 했나요?",
-        "우리 반에서 내가 가장 좋아하는 장소는 어디인가요?",
-        "오늘 체육 시간에 무엇을 배웠나요?",
-        "어제 저녁에 가족과 함께 무엇을 했나요?",
-        "내가 가장 아끼는 보물 1호는 무엇인가요?",
-        "우리 집에서 내가 가장 좋아하는 곳은 어디인가요?",
-        "주말에 가족과 함께 가고 싶은 곳은 어디인가요?",
-        "오늘 아침 나의 기분은 어땠나요?",
-        "최근에 나를 가장 행복하게 했던 일은 무엇인가요?",
-        "친구에게 고마웠던 마음을 짧게 적어볼까요?",
-        "내가 세상에서 가장 좋아하는 음식은 무엇인가요?",
-        "내가 가장 좋아하는 동물과 그 이유는 무엇인가요?",
-        "내가 만약 초능력이 생긴다면 어떤 능력을 갖고 싶나요?",
-        "내가 만약 유튜브 주인공이 된다면 무엇을 보여줄까요?",
-        "내가 만약 하늘을 마음껏 날 수 있다면 어떨까요?",
-        "나에게 말을 거는 로봇 친구가 생긴다면 어떨까요?",
-        "자고 일어났더니 내가 좋아하는 동물이 되어 있다면?",
-        "내가 나중에 어른이 되면 꼭 해보고 싶은 일은?"
+        "오늘 급식에서 가장 맛있었던 반찬은 무엇인가요?", "오늘 아침 학교에 올 때 무엇을 보았나요?",
+        "쉬는 시간에 친구와 어떤 놀이를 했나요?", "우리 반에서 내가 가장 좋아하는 장소는 어디인가요?",
+        "오늘 체육 시간에 무엇을 배웠나요?", "어제 저녁에 가족과 함께 무엇을 했나요?",
+        "내가 가장 아끼는 보물 1호는 무엇인가요?", "우리 집에서 내가 가장 좋아하는 곳은 어디인가요?",
+        "주말에 가족과 함께 가고 싶은 곳은 어디인가요?", "오늘 아침 나의 기분은 어땠나요?",
+        "최근에 나를 가장 행복하게 했던 일은 무엇인가요?", "친구에게 고마웠던 마음을 짧게 적어볼까요?",
+        "내가 세상에서 가장 좋아하는 음식은 무엇인가요?", "내가 가장 좋아하는 동물과 그 이유는 무엇인가요?",
+        "내가 만약 초능력이 생긴다면 어떤 능력을 갖고 싶나요?", "내가 만약 유튜브 주인공이 된다면 무엇을 보여줄까요?",
+        "내가 만약 하늘을 마음껏 날 수 있다면 어떨까요?", "나에게 말을 거는 로봇 친구가 생긴다면 어떨까요?",
+        "자고 일어났더니 내가 좋아하는 동물이 되어 있다면?", "내가 나중에 어른이 되면 꼭 해보고 싶은 일은?"
     ];
 
-    // ----------------------------------------------------
-    // 3. 페이지 로드 및 주제 제어
-    // ----------------------------------------------------
     function changeTopic() {
         const randomIndex = Math.floor(Math.random() * topics.length);
         const selectedTopic = topics[randomIndex];
@@ -164,15 +131,10 @@
     }
 
     window.onload = function() {
-        // 비밀번호 인증을 통과했을 때만 주제를 불러옵니다.
-        if (checkAccess()) {
-            changeTopic(); 
-        }
+        if (checkAccess()) changeTopic(); 
     };
 
-    // ----------------------------------------------------
-    // 4. 학생 모드: AI 피드백 호출
-    // ----------------------------------------------------
+    // 3. AI 피드백 호출 함수 (구글 최신 규격 및 에러 상세 진단 포함)
     async function getAIFeedback() {
         const text = document.getElementById("inputText").value.trim();
         const feedbackBox = document.getElementById("feedbackBox");
@@ -191,6 +153,7 @@
         }
 
         try {
+            // 구글 표준 v1beta 통신 규격 적용
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
             const response = await fetch(url, {
                 method: 'POST',
@@ -198,26 +161,35 @@
                 body: JSON.stringify({
                     contents: [{
                         parts: [{
-                            text: `${systemPrompt} 학생 문장: "${text}". 25자 이내로 다정하게 말해줘.`
+                            text: `${systemPrompt} 학생 문장: "${text}". 초등학교 2학년 수준에 맞게 25자 이내로 아주 다정하게 한 줄의 질문으로만 말해줘.`
                         }]
                     }]
                 })
             });
 
             const data = await response.json();
+            
+            // 만약 구글 콘솔 보안 등에서 차단 메시지가 온 경우 에러로 던짐
+            if (data.error) {
+                console.error("구글 서버 에러 상세:", data.error);
+                throw new Error(data.error.message);
+            }
+
             if (data.candidates && data.candidates[0].content) {
                 const aiMsg = data.candidates[0].content.parts[0].text;
                 feedbackBox.innerHTML = `<strong>💡 AI 선생님의 조언:</strong>\n${aiMsg}`;
                 document.getElementById("outputText").value = text; 
-            } else { throw new Error("API 응답 없음"); }
+            } else { 
+                throw new Error("정상적인 응답 형식이 아닙니다."); 
+            }
         } catch (e) {
-            feedbackBox.innerHTML = `⚠️ 오프라인 모드: '언제, 어디서, 누구와' 그랬는지 더 써볼까요?`;
+            console.error("최종 발생 에러:", e);
+            // 에러 원인을 파악할 수 있도록 힌트 제공
+            feedbackBox.innerHTML = `⚠️ 오프라인 모드 전환됨\n(원인: ${e.message || "네트워크 연결 또는 구글 API 제한 설정 불일치"})\n\n[임시 질문]: '언제, 어디서, 누구와' 그랬는지 더 써볼까요?`;
         }
     }
 
-    // ----------------------------------------------------
-    // 5. 기록 데이터 관리 및 차트 기능
-    // ----------------------------------------------------
+    // 4. 데이터 및 데이터 시각화 함수들
     function saveEntry() {
         const text = document.getElementById("outputText").value.trim();
         if(!text) return alert("저장할 문장이 없습니다.");
@@ -255,9 +227,7 @@
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(mode + '-section').classList.add('active');
-        if (event && event.currentTarget) {
-            event.currentTarget.classList.add('active');
-        }
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
     }
 
     let stChartObj, tcChartObj;
